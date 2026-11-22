@@ -1,0 +1,13 @@
+www.tuzgolusk.com {
+  redir https://tuzgolusk.com{uri} 308
+}
+
+tuzgolusk.com {
+  encode gzip zstd
+  request_body {
+    max_size 17MB
+  }
+  reverse_proxy app:3000 {
+    header_up X-Real-IP {remote_host}
+  }
+}

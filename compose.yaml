@@ -1,0 +1,46 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      SITE_URL: https://tuzgolusk.com
+      INDEX_PUBLIC_SITE: ${INDEX_PUBLIC_SITE:-false}
+      DATABASE_URL: file:/data/club.db
+      MEDIA_ROOT: /data/media
+      BACKUP_ROOT: /backups
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+      MEDIA_QUOTA_MB: ${MEDIA_QUOTA_MB:-0}
+      TRUST_PROXY: "true"
+    volumes:
+      - club_data:/data
+      - club_backups:/backups
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/health').then(async r=>process.exit(r.ok && (await r.json()).status === 'ok' ? 0 : 1)).catch(()=>process.exit(1))",
+        ]
+      interval: 20s
+      timeout: 5s
+      retries: 4
+  proxy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+volumes:
+  club_data:
+  club_backups:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,846 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Role {
+  id String @id @default(cuid())
+  key String @unique
+  name String
+  permissions Json
+  backUserRoleId User[] @relation("User_roleId")
+  backInviteRoleId Invite[] @relation("Invite_roleId")
+}
+
+model User {
+  id String @id @default(cuid())
+  email String @unique
+  name String
+  passwordHash String
+  active Boolean @default(true)
+  roleId String
+  role Role @relation("User_roleId", fields: [roleId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now())
+  backSessionUserId Session[] @relation("Session_userId")
+  backAuditActorId Audit[] @relation("Audit_actorId")
+  backRevisionActorId Revision[] @relation("Revision_actorId")
+  backMediaUploaderId Media[] @relation("Media_uploaderId")
+  backDesignOwnerId Design[] @relation("Design_ownerId")
+  backDesignEditorId Design[] @relation("Design_editorId")
+  backSocialPostOwnerId SocialPost[] @relation("SocialPost_ownerId")
+}
+
+model Session {
+  id String @id @default(cuid())
+  tokenHash String @unique
+  userId String
+  user User @relation("Session_userId", fields: [userId], references: [id], onDelete: Restrict)
+  expiresAt DateTime
+  @@index([expiresAt])
+}
+
+model Throttle {
+  id String @id @default(cuid())
+  key String @unique
+  count Int
+  resetAt DateTime
+  @@index([resetAt])
+}
+
+model Invite {
+  id String @id @default(cuid())
+  tokenHash String @unique
+  email String
+  roleId String
+  role Role @relation("Invite_roleId", fields: [roleId], references: [id], onDelete: Restrict)
+  expiresAt DateTime
+  usedAt DateTime?
+}
+
+model Audit {
+  id String @id @default(cuid())
+  actorId String?
+  actor User? @relation("Audit_actorId", fields: [actorId], references: [id], onDelete: Restrict)
+  module String
+  action String
+  recordId String?
+  createdAt DateTime @default(now())
+  @@index([module, createdAt])
+  @@index([createdAt])
+}
+
+model Revision {
+  id String @id @default(cuid())
+  module String
+  recordId String
+  number Int
+  snapshot Json
+  actorId String
+  actor User @relation("Revision_actorId", fields: [actorId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now())
+  @@unique([module, recordId, number])
+}
+
+model Media {
+  id String @id @default(cuid())
+  key String @unique
+  mimeType String @default("image/webp")
+  sha256 String
+  bytes Int
+  width Int
+  height Int
+  alt String
+  credit String
+  small Boolean @default(false)
+  isPublic Boolean @default(false)
+  uploaderId String
+  uploader User @relation("Media_uploaderId", fields: [uploaderId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now())
+  backNewsCoverId News[] @relation("News_coverId")
+  backNewsImageMediaId NewsImage[] @relation("NewsImage_mediaId")
+  backPageCoverId Page[] @relation("Page_coverId")
+  backSlideCoverId Slide[] @relation("Slide_coverId")
+  backSlideMobileId Slide[] @relation("Slide_mobileId")
+  backTeamLogoId Team[] @relation("Team_logoId")
+  backCompetitionLogoId Competition[] @relation("Competition_logoId")
+  backOpponentLogoId Opponent[] @relation("Opponent_logoId")
+  backStadiumCoverId Stadium[] @relation("Stadium_coverId")
+  backPlayerPhotoId Player[] @relation("Player_photoId")
+  backStaffPhotoId Staff[] @relation("Staff_photoId")
+  backAlbumCoverId Album[] @relation("Album_coverId")
+  backAlbumImageMediaId AlbumImage[] @relation("AlbumImage_mediaId")
+  backVideoPosterId Video[] @relation("Video_posterId")
+  backSponsorLogoId Sponsor[] @relation("Sponsor_logoId")
+  backDesignMediaMediaId DesignMedia[] @relation("DesignMedia_mediaId")
+  backDesignExportMediaId DesignExport[] @relation("DesignExport_mediaId")
+  backSocialAssetMediaId SocialAsset[] @relation("SocialAsset_mediaId")
+  @@index([createdAt])
+}
+
+model Category {
+  id String @id @default(cuid())
+  slug String @unique
+  title String
+  status String @default("DRAFT")
+  publishAt DateTime?
+  endAt DateTime?
+  position Int @default(0)
+  version Int @default(1)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  updatedBy String?
+  kind String @default("NEWS")
+  backNewsCategoryId News[] @relation("News_categoryId")
+  backAlbumCategoryId Album[] @relation("Album_categoryId")
+  backVideoCategoryId Video[] @relation("Video_categoryId")
+  backSponsorCategoryId Sponsor[] @relation("Sponsor_categoryId")
+  @@index([status, deletedAt, publishAt])
+  @@index([position])
+}
+
+model Tag {
+  id String @id @default(cuid())
+  slug String @unique
+  title String
+  status String @default("DRAFT")
+  publishAt DateTime?
+  endAt DateTime?
+  position Int @default(0)
+  version Int @default(1)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  updatedBy String?
+  backNewsTagTagId NewsTag[] @relation("NewsTag_tagId")
+  @@index([status, deletedAt, publishAt])
+  @@index([position])
+}
+
+model News {
+  id String @id @default(cuid())
+  slug String @unique
+  title String
+  status String @default("DRAFT")
+  publishAt DateTime?
+  endAt DateTime?
+  position Int @default(0)
+  version Int @default(1)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  updatedBy String?
+  summary String
+  body String
+  categoryId String?
+  category Category? @relation("News_categoryId", fields: [categoryId], references: [id], onDelete: Restrict)
+  coverId String?
+  cover Media? @relation("News_coverId", fields: [coverId], references: [id], onDelete: Restrict)
+  matchId String?
+  match Match? @relation("News_matchId", fields: [matchId], references: [id], onDelete: Restrict)
+  playerId String?
+  player Player? @relation("News_playerId", fields: [playerId], references: [id], onDelete: Restrict)
+  seoTitle String?
+  seoDescription String?
+  featured Boolean @default(false)
+  backNewsTagNewsId NewsTag[] @relation("NewsTag_newsId")
+  backNewsImageNewsId NewsImage[] @relation("NewsImage_newsId")
+  backSocialPostNewsId SocialPost[] @relation("SocialPost_newsId")
+  @@index([status, deletedAt, publishAt])
+  @@index([position])
+}
+
+model NewsTag {
+  id String @id @default(cuid())
+  newsId String
+  news News @relation("NewsTag_newsId", fields: [newsId], references: [id], onDelete: Restrict)
+  tagId String
+  tag Tag @relation("NewsTag_tagId", fields: [tagId], references: [id], onDelete: Restrict)
+  @@unique([newsId, tagId])
+}
+
+model NewsImage {
+  id String @id @default(cuid())
+  newsId String
+  news News @relation("NewsImage_newsId", fields: [newsId], references: [id], onDelete: Restrict)
+  mediaId String
+  media Media @relation("NewsImage_mediaId", fields: [mediaId], references: [id], onDelete: Restrict)
+  position Int @default(0)
+  @@unique([newsId, mediaId])
+}
+
+model Page {
+  id String @id @default(cuid())
+  slug String @unique
+  title String
+  status String @default("DRAFT")
+  publishAt DateTime?
+  endAt DateTime?
+  position Int @default(0)
+  version Int @default(1)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  updatedBy String?
+  summary String
+  body String
+  coverId String?
+  cover Media? @relation("Page_coverId", fields: [coverId], references: [id], onDelete: Restrict)
+  seoTitle String?
+  seoDescription String?
+  @@index([status, deletedAt, publishAt])
+  @@index([position])
+}
+
+model Announcement {
+  id String @id @default(cuid())
+  slug String @unique
+  title String
+  status String @default("DRAFT")
+  publishAt DateTime?
+  endAt DateTime?
+  position Int @default(0)
+  version Int @default(1)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  updatedBy String?
+  summary String
+  url String?
+  banner Boolean @default(false)
+  @@index([status, deletedAt, publishAt])
+  @@index([position])
+}
+
+model Slide {
+  id String @id @default(cuid())
+  slug String @unique
+  title String
+  status String @default("DRAFT")
+  publishAt DateTime?
+  endAt DateTime?
+  position Int @default(0)
+  version Int @default(1)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  updatedBy String?
+  summary String
+  coverId String?
+  cover Media? @relation("Slide_coverId", fields: [coverId], references: [id], onDelete: Restrict)
+  mobileId String?
+  mobile Media? @relation("Slide_mobileId", fields: [mobileId], references: [id], onDelete: Restrict)
+  url String?
+  cta String?
+  video String?
+  @@index([status, deletedAt, publishAt])
+  @@index([position])
+}
+
+model Navigation {
+  id String @id @default(cuid())
+  slug String @unique
+  title String
+  status String @default("DRAFT")
+  publishAt DateTime?
+  endAt DateTime?
+  position Int @default(0)
+  version Int @default(1)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  updatedBy String?
+  url String
+  area String @default("HEADER")
+  parentId String?
+  parent Navigation? @relation("Navigation_parentId", fields: [parentId], references: [id], onDelete: Restrict)
+  newWindow Boolean @default(false)
+  backNavigationParentId Navigation[] @relation("Navigation_parentId")
+  @@index([status, deletedAt, publishAt])
+  @@index([position])
+}
+
+model Team {
+  id String @id @default(cuid())
+  slug String @unique
+  title String
+  status String @default("DRAFT")
+  publishAt DateTime?
+  endAt DateTime?
+  position Int @default(0)
+  version Int @default(1)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  updatedBy String?
+  summary String
+  kind String @default("SENIOR")
+  logoId String?
+  logo Media? @relation("Team_logoId", fields: [logoId], references: [id], onDelete: Restrict)
+  backTeamSeasonTeamId TeamSeason[] @relation("TeamSeason_teamId")
+  @@index([status, deletedAt, publishAt])
+  @@index([position])
+}
+
+model Season {
+  id String @id @default(cuid())
+  slug String @unique
+  title String
+  status String @default("DRAFT")
+  publishAt DateTime?
+  endAt DateTime?
+  position Int @default(0)
+  version Int @default(1)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  updatedBy String?
+  startsAt DateTime
+  endsAt DateTime
+  current Boolean @default(false)
+  backTeamSeasonSeasonId TeamSeason[] @relation("TeamSeason_seasonId")
+  backCompetitionSeasonSeasonId CompetitionSeason[] @relation("CompetitionSeason_seasonId")
+  @@index([status, deletedAt, publishAt])
+  @@index([position])
+}
+
+model TeamSeason {
+  id String @id @default(cuid())
+  teamId String
+  team Team @relation("TeamSeason_teamId", fields: [teamId], references: [id], onDelete: Restrict)
+  seasonId String
+  season Season @relation("TeamSeason_seasonId", fields: [seasonId], references: [id], onDelete: Restrict)
+  backPlayerSeasonTeamSeasonId PlayerSeason[] @relation("PlayerSeason_teamSeasonId")
+  backStaffTeamSeasonId Staff[] @relation("Staff_teamSeasonId")
+  backMatchTeamSeasonId Match[] @relation("Match_teamSeasonId")
+  @@unique([teamId, seasonId])
+}
+
+model Competition {
+  id String @id @default(cuid())
+  slug String @unique
+  title String
+  status String @default("DRAFT")
+  publishAt DateTime?
+  endAt DateTime?
+  position Int @default(0)
+  version Int @default(1)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  updatedBy String?
+  logoId String?
+  logo Media? @relation("Competition_logoId", fields: [logoId], references: [id], onDelete: Restrict)
+  win Int @default(3)
+  draw Int @default(1)
+  loss Int @default(0)
+  backCompetitionSeasonCompetitionId CompetitionSeason[] @relation("CompetitionSeason_competitionId")
+  @@index([status, deletedAt, publishAt])
+  @@index([position])
+}
+
+model CompetitionSeason {
+  id String @id @default(cuid())
+  competitionId String
+  competition Competition @relation("CompetitionSeason_competitionId", fields: [competitionId], references: [id], onDelete: Restrict)
+  seasonId String
+  season Season @relation("CompetitionSeason_seasonId", fields: [seasonId], references: [id], onDelete: Restrict)
+  mode String @default("AUTO")
+  source String?
+  backMatchCompetitionSeasonId Match[] @relation("Match_competitionSeasonId")
+  backLeagueResultCompetitionSeasonId LeagueResult[] @relation("LeagueResult_competitionSeasonId")
+  backStandingCompetitionSeasonId Standing[] @relation("Standing_competitionSeasonId")
+  @@unique([competitionId, seasonId])
+}
+
+model Opponent {
+  id String @id @default(cuid())
+  slug String @unique
+  title String
+  status String @default("DRAFT")
+  publishAt DateTime?
+  endAt DateTime?
+  position Int @default(0)
+  version Int @default(1)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  updatedBy String?
+  logoId String?
+  logo Media? @relation("Opponent_logoId", fields: [logoId], references: [id], onDelete: Restrict)
+  backMatchOpponentId Match[] @relation("Match_opponentId")
+  backLeagueResultHomeId LeagueResult[] @relation("LeagueResult_homeId")
+  backLeagueResultAwayId LeagueResult[] @relation("LeagueResult_awayId")
+  @@index([status, deletedAt, publishAt])
+  @@index([position])
+}
+
+model Stadium {
+  id String @id @default(cuid())
+  slug String @unique
+  title String
+  status String @default("DRAFT")
+  publishAt DateTime?
+  endAt DateTime?
+  position Int @default(0)
+  version Int @default(1)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  updatedBy String?
+  address String?
+  coverId String?
+  cover Media? @relation("Stadium_coverId", fields: [coverId], references: [id], onDelete: Restrict)
+  backMatchStadiumId Match[] @relation("Match_stadiumId")
+  @@index([status, deletedAt, publishAt])
+  @@index([position])
+}
+
+model Player {
+  id String @id @default(cuid())
+  slug String @unique
+  title String
+  status String @default("DRAFT")
+  publishAt DateTime?
+  endAt DateTime?
+  position Int @default(0)
+  version Int @default(1)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  updatedBy String?
+  body String
+  photoId String?
+  photo Media? @relation("Player_photoId", fields: [photoId], references: [id], onDelete: Restrict)
+  positionName String
+  nationality String?
+  height Int?
+  foot String?
+  backNewsPlayerId News[] @relation("News_playerId")
+  backPlayerSeasonPlayerId PlayerSeason[] @relation("PlayerSeason_playerId")
+  backMatchEventPlayerId MatchEvent[] @relation("MatchEvent_playerId")
+  backLineupPlayerId Lineup[] @relation("Lineup_playerId")
+  @@index([status, deletedAt, publishAt])
+  @@index([position])
+}
+
+model PlayerSeason {
+  id String @id @default(cuid())
+  playerId String
+  player Player @relation("PlayerSeason_playerId", fields: [playerId], references: [id], onDelete: Restrict)
+  teamSeasonId String
+  teamSeason TeamSeason @relation("PlayerSeason_teamSeasonId", fields: [teamSeasonId], references: [id], onDelete: Restrict)
+  shirt Int
+  appearances Int @default(0)
+  goals Int @default(0)
+  assists Int @default(0)
+  minutes Int @default(0)
+  yellow Int @default(0)
+  red Int @default(0)
+  visible Boolean @default(true)
+  version Int @default(1)
+  @@unique([playerId, teamSeasonId])
+  @@index([teamSeasonId, visible])
+}
+
+model Staff {
+  id String @id @default(cuid())
+  slug String @unique
+  title String
+  status String @default("DRAFT")
+  publishAt DateTime?
+  endAt DateTime?
+  position Int @default(0)
+  version Int @default(1)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  updatedBy String?
+  roleName String
+  body String
+  photoId String?
+  photo Media? @relation("Staff_photoId", fields: [photoId], references: [id], onDelete: Restrict)
+  teamSeasonId String?
+  teamSeason TeamSeason? @relation("Staff_teamSeasonId", fields: [teamSeasonId], references: [id], onDelete: Restrict)
+  @@index([status, deletedAt, publishAt])
+  @@index([position])
+}
+
+model Match {
+  id String @id @default(cuid())
+  slug String @unique
+  title String
+  status String @default("DRAFT")
+  publishAt DateTime?
+  endAt DateTime?
+  position Int @default(0)
+  version Int @default(1)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  updatedBy String?
+  teamSeasonId String
+  teamSeason TeamSeason @relation("Match_teamSeasonId", fields: [teamSeasonId], references: [id], onDelete: Restrict)
+  opponentId String
+  opponent Opponent @relation("Match_opponentId", fields: [opponentId], references: [id], onDelete: Restrict)
+  competitionSeasonId String?
+  competitionSeason CompetitionSeason? @relation("Match_competitionSeasonId", fields: [competitionSeasonId], references: [id], onDelete: Restrict)
+  stadiumId String?
+  stadium Stadium? @relation("Match_stadiumId", fields: [stadiumId], references: [id], onDelete: Restrict)
+  kickoff DateTime
+  home Boolean @default(true)
+  round String?
+  referee String?
+  broadcast String?
+  matchState String @default("PLANNED")
+  clubScore Int?
+  opponentScore Int?
+  notes String?
+  albumId String?
+  album Album? @relation("Match_albumId", fields: [albumId], references: [id], onDelete: Restrict)
+  backNewsMatchId News[] @relation("News_matchId")
+  backMatchEventMatchId MatchEvent[] @relation("MatchEvent_matchId")
+  backLineupMatchId Lineup[] @relation("Lineup_matchId")
+  backDesignMatchId Design[] @relation("Design_matchId")
+  backSocialPostMatchId SocialPost[] @relation("SocialPost_matchId")
+  @@index([status, deletedAt, publishAt])
+  @@index([position])
+}
+
+model MatchEvent {
+  id String @id @default(cuid())
+  matchId String
+  match Match @relation("MatchEvent_matchId", fields: [matchId], references: [id], onDelete: Restrict)
+  requestKey String
+  minute Int
+  type String
+  playerId String?
+  player Player? @relation("MatchEvent_playerId", fields: [playerId], references: [id], onDelete: Restrict)
+  detail String
+  side String @default("CLUB")
+  createdAt DateTime @default(now())
+  @@unique([matchId, requestKey])
+  @@index([matchId, minute])
+}
+
+model Lineup {
+  id String @id @default(cuid())
+  matchId String
+  match Match @relation("Lineup_matchId", fields: [matchId], references: [id], onDelete: Restrict)
+  playerId String
+  player Player @relation("Lineup_playerId", fields: [playerId], references: [id], onDelete: Restrict)
+  starter Boolean @default(true)
+  position Int @default(0)
+  @@unique([matchId, playerId])
+}
+
+model LeagueResult {
+  id String @id @default(cuid())
+  competitionSeasonId String
+  competitionSeason CompetitionSeason @relation("LeagueResult_competitionSeasonId", fields: [competitionSeasonId], references: [id], onDelete: Restrict)
+  homeId String
+  home Opponent @relation("LeagueResult_homeId", fields: [homeId], references: [id], onDelete: Restrict)
+  awayId String
+  away Opponent @relation("LeagueResult_awayId", fields: [awayId], references: [id], onDelete: Restrict)
+  homeScore Int
+  awayScore Int
+  round String
+  @@unique([competitionSeasonId, homeId, awayId, round])
+}
+
+model Standing {
+  id String @id @default(cuid())
+  competitionSeasonId String
+  competitionSeason CompetitionSeason @relation("Standing_competitionSeasonId", fields: [competitionSeasonId], references: [id], onDelete: Restrict)
+  teamName String
+  rank Int
+  won Int
+  drawn Int
+  lost Int
+  scored Int
+  conceded Int
+  points Int
+  @@unique([competitionSeasonId, rank])
+}
+
+model Album {
+  id String @id @default(cuid())
+  slug String @unique
+  title String
+  status String @default("DRAFT")
+  publishAt DateTime?
+  endAt DateTime?
+  position Int @default(0)
+  version Int @default(1)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  updatedBy String?
+  summary String
+  coverId String?
+  cover Media? @relation("Album_coverId", fields: [coverId], references: [id], onDelete: Restrict)
+  categoryId String?
+  category Category? @relation("Album_categoryId", fields: [categoryId], references: [id], onDelete: Restrict)
+  backMatchAlbumId Match[] @relation("Match_albumId")
+  backAlbumImageAlbumId AlbumImage[] @relation("AlbumImage_albumId")
+  @@index([status, deletedAt, publishAt])
+  @@index([position])
+}
+
+model AlbumImage {
+  id String @id @default(cuid())
+  albumId String
+  album Album @relation("AlbumImage_albumId", fields: [albumId], references: [id], onDelete: Restrict)
+  mediaId String
+  media Media @relation("AlbumImage_mediaId", fields: [mediaId], references: [id], onDelete: Restrict)
+  position Int @default(0)
+  @@unique([albumId, mediaId])
+}
+
+model Video {
+  id String @id @default(cuid())
+  slug String @unique
+  title String
+  status String @default("DRAFT")
+  publishAt DateTime?
+  endAt DateTime?
+  position Int @default(0)
+  version Int @default(1)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  updatedBy String?
+  summary String
+  url String
+  posterId String?
+  poster Media? @relation("Video_posterId", fields: [posterId], references: [id], onDelete: Restrict)
+  categoryId String?
+  category Category? @relation("Video_categoryId", fields: [categoryId], references: [id], onDelete: Restrict)
+  @@index([status, deletedAt, publishAt])
+  @@index([position])
+}
+
+model Sponsor {
+  id String @id @default(cuid())
+  slug String @unique
+  title String
+  status String @default("DRAFT")
+  publishAt DateTime?
+  endAt DateTime?
+  position Int @default(0)
+  version Int @default(1)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  updatedBy String?
+  logoId String?
+  logo Media? @relation("Sponsor_logoId", fields: [logoId], references: [id], onDelete: Restrict)
+  url String?
+  categoryId String?
+  category Category? @relation("Sponsor_categoryId", fields: [categoryId], references: [id], onDelete: Restrict)
+  placement String @default("BOTH")
+  @@index([status, deletedAt, publishAt])
+  @@index([position])
+}
+
+model SocialAccount {
+  id String @id @default(cuid())
+  slug String @unique
+  title String
+  status String @default("DRAFT")
+  publishAt DateTime?
+  endAt DateTime?
+  position Int @default(0)
+  version Int @default(1)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  updatedBy String?
+  platform String
+  url String
+  @@index([status, deletedAt, publishAt])
+  @@index([position])
+}
+
+model SiteSetting {
+  id String @id @default(cuid())
+  key String @unique
+  data Json
+  version Int @default(1)
+  updatedAt DateTime @updatedAt
+}
+
+model HomeLayout {
+  id String @id @default(cuid())
+  key String @unique
+  draft Json
+  published Json
+  version Int @default(1)
+  updatedAt DateTime @updatedAt
+}
+
+model Redirect {
+  id String @id @default(cuid())
+  fromPath String @unique
+  toPath String
+  module String?
+  recordId String?
+  @@index([module, recordId])
+}
+
+model Message {
+  id String @id @default(cuid())
+  name String
+  email String
+  subject String
+  body String
+  state String @default("NEW")
+  consentAt DateTime
+  createdAt DateTime @default(now())
+  deletedAt DateTime?
+  @@index([state, createdAt])
+}
+
+model Design {
+  id String @id @default(cuid())
+  title String
+  category String
+  canvas Json
+  state String @default("DRAFT")
+  template Boolean @default(false)
+  ownerId String
+  owner User @relation("Design_ownerId", fields: [ownerId], references: [id], onDelete: Restrict)
+  editorId String
+  editor User @relation("Design_editorId", fields: [editorId], references: [id], onDelete: Restrict)
+  matchId String?
+  match Match? @relation("Design_matchId", fields: [matchId], references: [id], onDelete: Restrict)
+  version Int @default(1)
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  backDesignMediaDesignId DesignMedia[] @relation("DesignMedia_designId")
+  backDesignExportDesignId DesignExport[] @relation("DesignExport_designId")
+  @@index([template, updatedAt])
+}
+
+model DesignMedia {
+  id String @id @default(cuid())
+  designId String
+  design Design @relation("DesignMedia_designId", fields: [designId], references: [id], onDelete: Restrict)
+  mediaId String
+  media Media @relation("DesignMedia_mediaId", fields: [mediaId], references: [id], onDelete: Restrict)
+  @@unique([designId, mediaId])
+}
+
+model DesignExport {
+  id String @id @default(cuid())
+  designId String
+  design Design @relation("DesignExport_designId", fields: [designId], references: [id], onDelete: Restrict)
+  mediaId String
+  media Media @relation("DesignExport_mediaId", fields: [mediaId], references: [id], onDelete: Restrict)
+  width Int
+  height Int
+  createdAt DateTime @default(now())
+  @@index([designId, createdAt])
+}
+
+model SocialPost {
+  id String @id @default(cuid())
+  title String
+  caption String
+  hashtags String
+  platform String
+  state String @default("DRAFT")
+  scheduledAt DateTime?
+  matchId String?
+  match Match? @relation("SocialPost_matchId", fields: [matchId], references: [id], onDelete: Restrict)
+  newsId String?
+  news News? @relation("SocialPost_newsId", fields: [newsId], references: [id], onDelete: Restrict)
+  isTemplate Boolean @default(false)
+  ownerId String
+  owner User @relation("SocialPost_ownerId", fields: [ownerId], references: [id], onDelete: Restrict)
+  version Int @default(1)
+  publishedAt DateTime?
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  backSocialAssetPostId SocialAsset[] @relation("SocialAsset_postId")
+  @@index([state, scheduledAt])
+}
+
+model SocialAsset {
+  id String @id @default(cuid())
+  postId String
+  post SocialPost @relation("SocialAsset_postId", fields: [postId], references: [id], onDelete: Restrict)
+  mediaId String
+  media Media @relation("SocialAsset_mediaId", fields: [mediaId], references: [id], onDelete: Restrict)
+  @@unique([postId, mediaId])
+}
+
+model BackupRecord {
+  id String @id @default(cuid())
+  name String @unique
+  bytes Int
+  createdAt DateTime @default(now())
+}

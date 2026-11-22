@@ -1,0 +1,11 @@
+node_modules/
+.next/
+generated/
+backups/
+data/
+test-results/
+playwright-report/
+prisma/migrations/
+package-lock.json
+pages-dist/
+.pages-export-*/

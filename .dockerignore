@@ -1,0 +1,11 @@
+node_modules
+.next
+data
+backups
+generated
+.git
+.env*
+test-results
+playwright-report
+pages-dist/
+.pages-export-*/
